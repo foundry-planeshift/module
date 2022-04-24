@@ -1,0 +1,20 @@
+<form style="width: 250px;">    
+    {{#each players}}
+        <div style="display: flex;">
+            <p style="flex: 1;">{{name}}</p>
+            <select name="physicalToDigitalTokens" style="width: 100px;"> 
+                {{#each ../tokens}}
+                    {{#ifEq this ../physicalToken}}
+                        <option selected value="{{this}}">{{this}}</option>
+                    {{else}}
+                        <option value="{{this}}">{{this}}</option>
+                    {{/ifEq}}
+                {{/each}}
+            </select>
+        </div>
+    {{/each}}
+
+    <button type="submit" name="submit">
+        <i class="fa fa-check"></i> OK
+    </button>
+</form>

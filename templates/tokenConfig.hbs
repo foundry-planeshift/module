@@ -1,0 +1,19 @@
+<h2 class="module-header tokenConfig"><b>PlaneShift</b></h2>
+<p class="notes">Configure which Physical Token is linked to this Token.</p>
+
+<div class="form-group">
+    <label>Physical token</label>
+    <div class="form-fields">
+        {{!-- <input list="physicalTokenSelect" id="physicalTokenSelect" /> --}}
+        <select name="physicalToDigitalTokens" id="physicalTokenSelect">
+            <option value="-1">None</option>
+            {{#each tokens as |token|}}
+                {{#if token.selected}}
+                    <option style="background-image: url({{token.image}})" selected value="{{token.id}}">{{token.id}}</option>
+                {{else}}
+                    <option value="{{token.id}}">{{token.id}}</option>
+                {{/if}}
+            {{/each}}
+        </select>
+    </div>
+</div>

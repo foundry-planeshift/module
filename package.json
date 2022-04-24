@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "@league-of-foundry-developers/foundry-vtt-types": "^9.238.1"
+  },
+  "dependencies": {
+    "aruco-marker": "^2.0.0"
+  }
+}

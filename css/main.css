@@ -1,0 +1,60 @@
+.row {
+    display: flex;
+}
+  
+.column {
+    flex: 50%;
+    margin: 10px;
+}
+
+.slider {
+    /* Use flexbox for slider wrapper element */
+    display: flex;
+    /* Direct alignment of content along horizontal axis */
+    flex-direction: row;
+    /* Tell's flexbox to center content around the non-horizontal axis (ie around the vertical axis) */
+    align-items: center;
+}
+
+.slider-label {
+    width:75px; 
+}
+
+.slider-input {
+    /* Causes the input element to horizontally stretch to fill in available horizontal space */
+    flex:1;
+}
+
+.slider-value {
+    width: 100px;
+}
+
+.no-bullets {
+    list-style-type: none; /* Remove bullets */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margins */
+}
+
+.battleAreaMarker {
+    height: 17mm;
+    width: 17mm;
+    background-color: white;
+    position: absolute;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.calibrationPattern {
+    height: 100%;
+    /* width: 100%; */
+    z-index: 100;
+    position: absolute;
+    object-fit: cover;
+}
+
+.tokenConfig {
+    font-size: 1em;
+}
