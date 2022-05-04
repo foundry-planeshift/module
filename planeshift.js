@@ -13,6 +13,21 @@ export const SOCKET_HIDE_BATTLEAREA_MARKERS = "hideBattleAreaMarkers";
 
 export const SETTING_OBSERVER_USER = "observerUser";
 
+export var planeshift_log = function(text) {
+    var context = "PlaneShift |";
+    return Function.prototype.bind.call(console.log, console, context);
+}();
+
+export const EndPoint = {
+    HEALTH_CHECK: 'healthcheck',
+    TOKENS_LOCATION: 'tokenslocation',
+    ORIGINAL_IMAGE: 'originalimage',
+    ROI_IMAGE: 'roiimage',
+    SELECT_ROI: 'selectroi',
+    CALIBRATION_IMAGE: "calibrationimage",
+    CALIBRATE_CAMERA: "calibratecamera"
+};
+
 export class PlaneShift {
     static ID = 'planeshift';
     
@@ -25,80 +40,123 @@ export class PlaneShift {
         TOKENSETTINGS: `modules/${this.ID}/templates/tokenSettings.hbs`
     }
     
+    
     constructor() {
+        this.serverIsAlive = false;
+
         this.physicalTokens = [];
         this.getTokenLocationsEnabled = false;
     }
-    
+
     physicalTokenIDs() {
         return this.physicalTokens;
     }
     
+    getEndpointAddress(endpoint) {
+        const hostname = game.settings.get(MODULE_ID, "hostname");
+        const port = game.settings.get(MODULE_ID, "port");
+        return `http://${hostname}:${port}/${endpoint}`
+    }
+
+    async healthCheck() {
+        while (true) {
+            try {
+                await fetch(this.getEndpointAddress(EndPoint.HEALTH_CHECK));
+
+                this.serverIsAlive = true;
+                $('*[data-tool="planeshift-enabled"]').removeClass("server-dead").addClass("server-alive")
+
+                planeshift_log("Server is alive.")
+                
+                
+            } catch {
+                planeshift_log("Server is dead.")
+                this.serverIsAlive = false;
+                $('*[data-tool="planeshift-enabled"]').removeClass("server-alive").addClass("server-dead")
+            }
+            
+            await new Promise(r => setTimeout(r, 500));
+        }
+    }
+
     async getTokenLocations() {
+        if (!this.getTokenLocationsEnabled) return;
+
         let gridLayer = canvas.layers[2];
+        let connected = false;
         
-        while (true) { 
-            if (this.getTokenLocationsEnabled) {
+        while (this.getTokenLocationsEnabled) { 
+            const endpoint = this.getEndpointAddress(EndPoint.TOKENS_LOCATION);
+            
+            try {
 
-                console.log("getTokenLocationsEnabled is enabled.")
+                    const response = await fetch(endpoint);
+                    const json = await response.json()
 
-                const response = await fetch('http://localhost:8337/tokenslocation');
-                const json = await response.json()
-                
-                if (json.length == 0) {
-                    continue
-                }
-                
-                var physicalToDigitalTokensSetting = game.settings.get(MODULE_ID, SETTINGS.PHYSICAL_TO_DIGITAL_TOKENS);
-                
-                let updates = []
-                // If a new physical ID shows up, add it to list
-                for (var tokenJson of json) {
-                    let physicalToken = JSON.parse(tokenJson)
-                    
-                    if (!this.physicalTokens.includes(physicalToken.id)) {
-                        this.physicalTokens.push(physicalToken.id);
+                    if (!connected) {
+                        connected = true;
+                        planeshift_log(`Connected to ${this.getEndpointAddress(EndPoint.TOKENS_LOCATION)}.`);
                     }
                     
-                    // Initialize object for the physical token if it doesn't exist
-                    if (!physicalToDigitalTokensSetting.hasOwnProperty(physicalToken.id)) {
-                        physicalToDigitalTokensSetting[physicalToken.id] = [];
+                    if (json.length == 0) {
+                        continue
                     }
-
-                    var digitalTokens = physicalToDigitalTokensSetting[physicalToken.id];
-                    for (var actorID of digitalTokens) {
-                        // If this physical token doesn´t yet have a digital counterpart, skip
-                        if (actorID === null || actorID === undefined) continue;
+                    
+                    var physicalToDigitalTokensSetting = game.settings.get(MODULE_ID, SETTINGS.PHYSICAL_TO_DIGITAL_TOKENS);
+                    
+                    let updates = []
+                    // If a new physical ID shows up, add it to list
+                    for (var tokenJson of json) {
+                        let physicalToken = JSON.parse(tokenJson)
                         
-                        var digitalToken = game.actors.get(actorID).getActiveTokens()[0]
-                        // If this doesn´t exist in the scene, skip
-                        if (digitalToken === undefined) continue;
-
-                        let sceneRect = canvas.dimensions.sceneRect;
-                        let x = sceneRect.x + sceneRect.width * physicalToken.coordinates[0];
-                        let y = sceneRect.y + sceneRect.height * physicalToken.coordinates[1];
-                        
-                        let digitalTokenCenter = digitalToken.getCenter(x, y);
-                        let physicalTokenCenter = {x: 2*x - digitalTokenCenter.x, y: 2*y - digitalTokenCenter.y};
-
-                        let snapPosition = gridLayer.getSnappedPosition(physicalTokenCenter.x, physicalTokenCenter.y);
-
-                        if (digitalToken != snapPosition) {
-                            updates.push({_id: digitalToken.id, x: snapPosition.x, y: snapPosition.y });
+                        if (!this.physicalTokens.includes(physicalToken.id)) {
+                            this.physicalTokens.push(physicalToken.id);
                         }
                         
+                        // Initialize object for the physical token if it doesn't exist
+                        if (!physicalToDigitalTokensSetting.hasOwnProperty(physicalToken.id)) {
+                            physicalToDigitalTokensSetting[physicalToken.id] = [];
+                        }
+
+                        var digitalTokens = physicalToDigitalTokensSetting[physicalToken.id];
+                        for (var actorID of digitalTokens) {
+                            // If this physical token doesn´t yet have a digital counterpart, skip
+                            if (actorID === null || actorID === undefined) continue;
+                            
+                            var digitalToken = game.actors.get(actorID).getActiveTokens()[0]
+                            // If this doesn´t exist in the scene, skip
+                            if (digitalToken === undefined) continue;
+
+                            let sceneRect = canvas.dimensions.sceneRect;
+                            let x = sceneRect.x + sceneRect.width * physicalToken.coordinates[0];
+                            let y = sceneRect.y + sceneRect.height * physicalToken.coordinates[1];
+                            
+                            let digitalTokenCenter = digitalToken.getCenter(x, y);
+                            let physicalTokenCenter = {x: 2*x - digitalTokenCenter.x, y: 2*y - digitalTokenCenter.y};
+
+                            let snapPosition = gridLayer.getSnappedPosition(physicalTokenCenter.x, physicalTokenCenter.y);
+
+                            if (digitalToken != snapPosition) {
+                                updates.push({_id: digitalToken.id, x: snapPosition.x, y: snapPosition.y });
+                            }
+                            
+                        }
+
                     }
+                    
+                    canvas.scene.updateEmbeddedDocuments("Token", updates);
 
-                }
-                
-                canvas.scene.updateEmbeddedDocuments("Token", updates);
-
-                // Update setting with new empty arrays for new physical tokens
-                game.settings.set(MODULE_ID, SETTINGS.PHYSICAL_TO_DIGITAL_TOKENS, physicalToDigitalTokensSetting);
+                    // Update setting with new empty arrays for new physical tokens
+                    game.settings.set(MODULE_ID, SETTINGS.PHYSICAL_TO_DIGITAL_TOKENS, physicalToDigitalTokensSetting);
+            
+                await new Promise(r => setTimeout(r, 100));
+            } catch {
+                planeshift_log(`Could not connect to ${endpoint}. Retrying..`)
+                await new Promise(r => setTimeout(r, 1000));
             }
-
-            await new Promise(r => setTimeout(r, 100));
         }
+
+        planeshift_log(`Disconnected from ${this.getEndpointAddress(EndPoint.TOKENS_LOCATION)}.`);
     }
 }
 
@@ -137,7 +195,7 @@ export function createArucoMarkerElement(id) {
 }
 
 function showCalibrationPattern(pattern) {
-    console.log("Showing calibration pattern")
+    planeshift_log("Showing calibration pattern")
     let body = $("body");
 
     var calibrationPattern = $('<img />', { 
@@ -182,13 +240,13 @@ Hooks.once('init', function() {
 
 Hooks.once('ready', function() {
     registerSettings(); 
-    
+
     if (game.user.isGM) {
+        planeShift.healthCheck();
         planeShift.getTokenLocations();
     }
     
     socket.on(SOCKET_MODULE_ID, (data) => {
-        console.log("Socket:", data)
         if (game.user.id == data.userID) {
             switch (data.action) {
                 case SOCKET_SHOW_CALIBRATION_PATTERN:

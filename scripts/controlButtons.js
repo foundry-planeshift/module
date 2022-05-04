@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTING_OBSERVER_USER, planeShift } from "../planeshift.js";
+import { planeshift_log, MODULE_ID, SETTING_OBSERVER_USER, planeShift } from "../planeshift.js";
 import { VideoSettings } from "./videoSettings.js";
 import { SETTINGS } from "./tokensSettings.js"
 
@@ -20,33 +20,6 @@ export function registerLayer() {
             }
         })
     }
-}
-
-class OverlayLayer extends CanvasLayer {
-  constructor() {
-    super();
-  }
-
-  static get layerOptions() {
-    return foundry.utils.mergeObject(super.layerOptions, {
-      name: "overlay",
-      zIndex: 0,
-    });
-  }
-
-  activate() {
-    CanvasLayer.prototype.activate.apply(this);
-    return this;
-  }
-
-  deactivate() {
-    CanvasLayer.prototype.deactivate.apply(this);
-    return this;
-  }
-
-  async draw() {
-    super.draw();
-  }
 }
 
 class PlaneShiftLayer extends CanvasLayer {
@@ -76,14 +49,6 @@ class PlaneShiftLayer extends CanvasLayer {
     }
 }
 
-function blobToBase64(blob) {
-  return new Promise((resolve, _) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.readAsDataURL(blob);
-  });
-}
-
 export function pushControlButtons(controls){
   if (game.user.isGM == false || canvas == null) return;
   
@@ -95,15 +60,22 @@ export function pushControlButtons(controls){
     layer: "planeshift",
     tools: [
       {
-        name: "enabled",
+        name: "planeshift-enabled",
         title: "Enabled",
         icon: "fas fa-power-off",
         visible: true,
         toggle: true,
-        onClick: (toggled) => { planeShift.getTokenLocationsEnabled = toggled; }
+        active: planeShift.getTokenLocationsEnabled,
+        onClick: (toggled) => { 
+          planeShift.getTokenLocationsEnabled = toggled; 
+
+          if (toggled) {
+            planeShift.getTokenLocations();
+          }          
+        }
       },
       {
-        name: "video-settings",
+        name: "planeshift-video-settings",
         title: "Video Settings",
         icon: "fas fa-video",
         visible: true,
@@ -128,34 +100,53 @@ function playerIDs() {
 }
 
 export const registerSettings = function() {
+  game.settings.register(MODULE_ID, "hostname", {
+    name: "Hostname",
+    label: "Hostname",
+    hint: "The hostname used by the PlaneShift server.",
+    default: "localhost",
+    type: String,
+    config: true,
+    restricted: true
+  });
+
+  game.settings.register(MODULE_ID, "port", {
+    name: "Port",
+    label: "Port",
+    hint: "The port used by the PlaneShift server.",
+    default: "8337",
+    type: String,
+    config: true,
+    restricted: true
+  });
+
   game.settings.register(MODULE_ID, SETTING_OBSERVER_USER, {
     name: "Observer User",
     hint: "The observer user that is shown on the TV.",
-    scope: "world",     // This specifies a client-stored setting
-    config: true,        // This specifies that the setting appears in the configuration view
+    scope: "world",
+    config: true,
     type: String,
     choices: playerIDs(),
-    restricted: true                   // Restrict this submenu to gamemaster only?
+    restricted: true
   });
 
   game.settings.registerMenu(MODULE_ID, "videoSettings", {
     name: "Video settings",
-    label: "Video settings",      // The text label used in the button
+    label: "Video settings",
     hint: "A description of what will occur in the submenu dialog.",
-    icon: "fas fa-bars",               // A Font Awesome icon used in the submenu button
-    type: VideoSettings,   // A FormApplication subclass
+    icon: "fas fa-bars",
+    type: VideoSettings,
     config: true,
-    restricted: false                // Restrict this submenu to gamemaster only?
+    restricted: true 
   });
 
-  console.log("Registering setting", MODULE_ID, SETTINGS.PHYSICAL_TO_DIGITAL_TOKENS)
   game.settings.register(MODULE_ID, SETTINGS.PHYSICAL_TO_DIGITAL_TOKENS, {
-    scope: 'world',     // "world" = sync to db, "client" = local storage
-    config: false,      // we will use the menu above to edit this setting
+    scope: 'world',
+    config: false,
     type: Object,
-    default: {},        // can be used to set up the default structure
-    restricted: true,                   // Restrict this submenu to gamemaster only?,
-    onChange: value => console.log(`Changed "PHYSICAL_TO_DIGITAL_TOKENS" setting to:`, value)
+    default: {},
+    restricted: true,
+    onChange: value => planeshift_log(`Changed "PHYSICAL_TO_DIGITAL_TOKENS" setting to:`, value)
   });
   
-}
+} 

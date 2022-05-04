@@ -58,3 +58,11 @@
 .tokenConfig {
     font-size: 1em;
 }
+
+#controls > ol.sub-controls.app.control-tools.flexcol.active > li.control-tool.toggle.server-alive {
+    color: green;
+}
+
+#controls > ol.sub-controls.app.control-tools.flexcol.active > li.control-tool.toggle.server-dead {
+    color: red;
+}

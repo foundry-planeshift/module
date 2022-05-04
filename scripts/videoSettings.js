@@ -5,7 +5,10 @@ import {
     SOCKET_HIDE_CALIBRATION_PATTERN,
     SOCKET_HIDE_BATTLEAREA_MARKERS, 
     PlaneShift, 
-    SETTING_OBSERVER_USER
+    SETTING_OBSERVER_USER,
+    EndPoint,
+    planeShift,
+    planeshift_log
 } from "../planeshift.js"
 
 export class VideoSettings extends FormApplication {
@@ -33,20 +36,20 @@ export class VideoSettings extends FormApplication {
     }
     
     async negotiate(pc, url) {
-        console.log("pc", this.pc)
+        planeshift_log("pc", this.pc)
         pc.addTransceiver('video', {direction: 'recvonly'});
         
         return pc.createOffer().then(function(offer) {
-            console.log("WebRTC negotiate: Creating offer");
+            planeshift_log("WebRTC negotiate: Creating offer");
             return pc.setLocalDescription(offer);
         }).then(function() {
             // wait for ICE gathering to complete
             return new Promise(function(resolve) {
                 if (pc.iceGatheringState === 'complete') {
-                    console.log("WebRTC negotiate: Gathering state complete");
+                    planeshift_log("WebRTC negotiate: Gathering state complete");
                     resolve();
                 } else {
-                    console.log("WebRTC negotiate: Waiting for gathering state");
+                    planeshift_log("WebRTC negotiate: Waiting for gathering state");
                     function checkState() {
                         if (pc.iceGatheringState === 'complete') {
                             pc.removeEventListener('icegatheringstatechange', checkState);
@@ -57,7 +60,7 @@ export class VideoSettings extends FormApplication {
                 }
             });
         }).then(function() {
-            console.log("WebRTC negotiate: Fetching content");
+            planeshift_log("WebRTC negotiate: Fetching content");
             var offer = pc.localDescription;
             return fetch(url, {
                 body: JSON.stringify({
@@ -70,10 +73,10 @@ export class VideoSettings extends FormApplication {
                 method: 'POST'
             });
         }).then(function(response) {
-            console.log("WebRTC negotiate: Parsing content");
+            planeshift_log("WebRTC negotiate: Parsing content");
             return response.json();
         }).then(function(answer) {
-            console.log("WebRTC negotiate: Returning answer");
+            planeshift_log("WebRTC negotiate: Returning answer");
             return pc.setRemoteDescription(answer);
         }).catch(function(e) {
             console.error(e);
@@ -96,7 +99,7 @@ export class VideoSettings extends FormApplication {
             }
         });
         
-        this.negotiate(this.originalImagePC, 'http://localhost:8337/originalimage');
+        this.negotiate(this.originalImagePC, planeShift.getEndpointAddress(EndPoint.ORIGINAL_IMAGE));
     }
     
     connectToROIImage() {
@@ -110,18 +113,17 @@ export class VideoSettings extends FormApplication {
         
         // connect audio / video
         this.roiImagePC.addEventListener('track', function(evt) {
-            console.log(evt)
             if (evt.track.kind == 'video') {
                 const roiVideo = document.getElementById('roiimage');
                 roiVideo.srcObject = evt.streams[0];
             }
         });
         
-        this.negotiate(this.roiImagePC, 'http://localhost:8337/roiimage');
+        this.negotiate(this.roiImagePC, planeShift.getEndpointAddress(EndPoint.ROI_IMAGE));
     }
     
     async selectBattleArea(event) {
-        console.log("Selecting battle area")
+        planeshift_log("Selecting battle area")
         const settings = {
             method: 'POST',
             headers: {
@@ -131,7 +133,7 @@ export class VideoSettings extends FormApplication {
         };
         
         try {
-            const fetchResponse = await fetch('http://localhost:8337/selectroi', settings);
+            const fetchResponse = await fetch(planeShift.getEndpointAddress(EndPoint.SELECT_ROI), settings);
             const data = await fetchResponse;
 
             let observerUser = game.settings.get(MODULE_ID, SETTING_OBSERVER_USER);
@@ -155,11 +157,9 @@ export class VideoSettings extends FormApplication {
             },
             body: JSON.stringify({width: screen.availWidth, height: screen.availHeight})
         };
-
-        console.log("http_getCalibrationPattern - HTTP POST request: ", request)
         
         try {
-            const fetchResponse = await fetch('http://localhost:8337/calibrationimage', request);
+            const fetchResponse = await fetch(planeShift.getEndpointAddress(EndPoint.CALIBRATION_IMAGE), request);
             const blob = await fetchResponse.blob();
 
             return blob;
@@ -178,7 +178,7 @@ export class VideoSettings extends FormApplication {
         };
         
         try {
-            const fetchResponse = await fetch('http://localhost:8337/calibratecamera', request);
+            const fetchResponse = await fetch(planeShift.getEndpointAddress(EndPoint.CALIBRATE_CAMERA), request);
             const blob = await fetchResponse.blob();
 
             return blob;
