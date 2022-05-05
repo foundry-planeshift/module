@@ -11,6 +11,6 @@ The server is where the computer vision processing is done.
 See [the server page](https://github.com/foundry-planeshift/server).
 
 ## Module
-The FoundryVTT module!
+The PlaneShift module!
 
 [![Vimeo video](https://user-images.githubusercontent.com/497540/166941656-c7063029-b42f-4966-bbdb-8c489c2e542f.png)](https://vimeo.com/706542539)
