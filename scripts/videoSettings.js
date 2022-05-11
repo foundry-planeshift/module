@@ -27,7 +27,7 @@ export class VideoSettings extends FormApplication {
             width: 'auto',
             id: 'planeshift',
             template: PlaneShift.TEMPLATES.PLANESHIFT,
-            title: 'Display video'
+            title: 'PlaneShift video settings'
         };
         
         const mergedOptions = foundry.utils.mergeObject(defaults, overrides);

@@ -66,11 +66,8 @@ export class PlaneShift {
                 this.serverIsAlive = true;
                 $('*[data-tool="planeshift-enabled"]').removeClass("server-dead").addClass("server-alive")
 
-                planeshift_log("Server is alive.")
-                
                 
             } catch {
-                planeshift_log("Server is dead.")
                 this.serverIsAlive = false;
                 $('*[data-tool="planeshift-enabled"]').removeClass("server-alive").addClass("server-dead")
             }
@@ -92,6 +89,7 @@ export class PlaneShift {
 
                     const response = await fetch(endpoint);
                     const json = await response.json()
+                    // console.log(json)
 
                     if (!connected) {
                         connected = true;
@@ -150,8 +148,8 @@ export class PlaneShift {
                     game.settings.set(MODULE_ID, SETTINGS.PHYSICAL_TO_DIGITAL_TOKENS, physicalToDigitalTokensSetting);
             
                 await new Promise(r => setTimeout(r, 100));
-            } catch {
-                planeshift_log(`Could not connect to ${endpoint}. Retrying..`)
+            } catch (error) {
+                planeshift_log(`Could not connect to ${endpoint}. Error: ${error}. Retrying...`)
                 await new Promise(r => setTimeout(r, 1000));
             }
         }

@@ -5,7 +5,7 @@
     <label>Physical token</label>
     <div class="form-fields">
         {{!-- <input list="physicalTokenSelect" id="physicalTokenSelect" /> --}}
-        <select name="physicalToDigitalTokens" id="physicalTokenSelect">
+        {{!-- <select name="physicalToDigitalTokens" id="physicalTokenSelect">
             <option value="-1">None</option>
             {{#each tokens as |token|}}
                 {{#if token.selected}}
@@ -14,6 +14,17 @@
                     <option value="{{token.id}}">{{token.id}}</option>
                 {{/if}}
             {{/each}}
-        </select>
+        </select> --}}
+
+        <input value="{{physicalToken}}" type="number" list="digitalTokens" id="physicalTokenSelect" />
+        <datalist id="digitalTokens">
+            {{#each tokens as |token|}}
+                {{#if token.selected}}
+                    <option selected value="{{token.id}}">{{token.id}}</option>
+                {{else}}
+                    <option value="{{token.id}}">{{token.id}}</option>
+                {{/if}}
+            {{/each}}
+        </datalist>
     </div>
 </div>
